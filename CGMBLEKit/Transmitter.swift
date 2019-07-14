@@ -319,6 +319,15 @@ public final class Transmitter: BluetoothManagerDelegate {
 
         self.backfillBuffer?.append(response)
     }
+
+    func bluetoothManager(_ manager: BluetoothManager, peripheralManager: PeripheralManager, didReceiveAuthenticationResponse response: Data) {
+        do {
+            try peripheralManager.enableNotify()
+        } catch let error {
+            log.error("Error trying to enable notifications on control characteristic: %{public}@", String(describing: error))
+        }
+    }
+
 }
 
 
@@ -480,8 +489,9 @@ fileprivate extension PeripheralManager {
 
     func listenToControl() throws {
         do {
-            try setNotifyValue(true, for: .control)
-            try setNotifyValue(true, for: .backfill)
+            try setNotifyValue(true, for: .authentication)
+            //try setNotifyValue(true, for: .control)
+            //try setNotifyValue(true, for: .backfill)
         } catch let error {
             throw TransmitterError.controlError("Error enabling notification: \(error)")
         }
