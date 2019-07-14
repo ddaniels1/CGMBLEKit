@@ -149,9 +149,9 @@ public final class Transmitter: BluetoothManagerDelegate {
 
         peripheralManager.perform { (peripheral) in
             if self.passiveModeEnabled {
-                self.log.debug("Listening for control commands in passive mode")
+                self.log.debug("Listening for authentication responses in passive mode")
                 do {
-                    try peripheral.listenToControl()
+                    try peripheral.listenToAuthentication()
                 } catch let error {
                     self.delegateQueue.async {
                         self.delegate?.transmitter(self, didError: error)
@@ -319,6 +319,18 @@ public final class Transmitter: BluetoothManagerDelegate {
 
         self.backfillBuffer?.append(response)
     }
+
+    func bluetoothManager(_ manager: BluetoothManager, peripheralManager: PeripheralManager, didReceiveAuthenticationResponse response: Data) {
+        self.log.debug("Listening for control responses after authentication response")
+        peripheralManager.perform { (peripheral) in
+            do {
+                try peripheral.listenToControl()
+            } catch let error {
+                self.log.error("Error trying to enable notifications on control characteristic: %{public}@", String(describing: error))
+            }
+        }
+    }
+
 }
 
 
@@ -478,12 +490,20 @@ fileprivate extension PeripheralManager {
         }
     }
 
+    func listenToAuthentication() throws {
+        do {
+            try setNotifyValue(true, for: .authentication)
+        } catch let error {
+            throw TransmitterError.controlError("Error enabling authentication characteristic notification: \(error)")
+        }
+    }
+
     func listenToControl() throws {
         do {
             try setNotifyValue(true, for: .control)
-            try setNotifyValue(true, for: .backfill)
         } catch let error {
-            throw TransmitterError.controlError("Error enabling notification: \(error)")
+            throw TransmitterError.controlError("Error enabling control characteristic notification: \(error)")
         }
     }
+
 }
